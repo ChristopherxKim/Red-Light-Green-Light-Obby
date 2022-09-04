@@ -1,0 +1,168 @@
+local status = game.ReplicatedStorage.Status
+
+local intermission = 10
+local gameDuration = 90
+
+local finishedConnection = nil
+
+
+while true do
+	local IngamePlayers = {}
+	local gameEnded = false
+	
+	status.Value = "Waiting for players"
+	
+	repeat wait(5) until #game.Players:GetPlayers() >= 1
+	
+	for _, player in pairs(game.Players:GetPlayers()) do
+		local character = player.Character or nil
+		
+		if character ~= nil then
+			table.insert(IngamePlayers, player.Name)
+			print("Player was added to the table")
+			local isPlaying = Instance.new("StringValue")
+			isPlaying.Name = "IsPlaying"
+			isPlaying.Parent = player.Info
+		end
+	end
+	print(#IngamePlayers)
+	
+	local redLightGreenLight = game.ServerStorage["Red Light, Green Light"]:Clone()
+	redLightGreenLight.Parent = workspace
+	
+	finishedConnection = workspace ["Red Light, Green Light"].Finish.Touched:Connect(function(hit)
+		if hit.Parent:FindFirstChild("Humanoid") then
+			local plr = game.Players:GetPlayerFromCharacter(hit.Parent)
+			if plr ~= nil then
+				if plr.Info:FindFirstChild ("IsPlaying") and not plr.Info:FindFirstChild("Winner") then
+					local winner = Instance.new ("StringValue", plr.Info)
+					winner.Name = "Winner"
+					plr.leaderstats.Wins.Value += 1
+				end
+			end
+		end
+	end)
+	wait (10)
+	for i = intermission,0,-1 do
+		status.Value = "Starting in "..i.." Seconds"
+		wait (1)
+	end
+	status.Value = "Teleporting Players..."
+	wait(1)
+	for _, player in pairs (game.Players:GetPlayers()) do
+		if table.find (IngamePlayers, player.Name) and player.Info:FindFirstChild("IsPlaying") then
+			local randomSpawn = redLightGreenLight["Spawns"]:GetChildren()[math.random(1, #redLightGreenLight["Spawns"]:GetChildren())]
+			player.Character.HumanoidRootPart.CFrame = randomSpawn.CFrame
+		end
+	end
+	for i = 5,0,-1 do
+		status.Value = i
+		wait (1)
+	end
+	status.Value ="Go!"
+	wait(0.5)
+	redLightGreenLight.invisibleBarrier.CanCollide = false
+	spawn (function()
+		while gameEnded == false do 
+			spawn(function()
+				while wait (.1) do
+					if gameEnded == false then
+						if #IngamePlayers == 0 then
+							gameEnded = true
+						end
+						for _, player in pairs (game.Players:GetPlayers()) do
+							if player.Info:FindFirstChild("IsPlaying") and game.ReplicatedStorage:FindFirstChild("RedLight").Value == true then
+								local character = player.Character or nil
+
+								if character ~= nil then
+									if character.Humanoid.MoveDirection.Magnitude > 0 and not player.Info:FindFirstChild ("Winner") then
+										character.Humanoid.Health = 0
+										player.Info:FindFirstChild("IsPlaying"):Destroy()
+										for i in pairs(IngamePlayers) do
+											if IngamePlayers[i] == player.Name then
+												IngamePlayers[i] = nil
+											end
+										end
+										print(#IngamePlayers)
+									end
+								end
+							end
+						end
+						for i, v in pairs (game.Players:GetPlayers()) do
+							if v.Info:FindFirstChild("IsPlaying") then
+								v.PlayerGui.Main.LightColor.Visible = true
+							else
+								v.PlayerGui.Main.LightColor.Visible = false
+							end
+						end
+					end
+					end
+					
+			end)
+			for i, v in pairs (game.Players:GetPlayers()) do
+				if v.Info:FindFirstChild("IsPlaying") then
+					v.PlayerGui.Main.LightColor.Visible = true
+				
+				end
+			end
+			
+			while not gameEnded do 
+				for i, v in pairs (game.Players:GetPlayers()) do
+					if v.Info:FindFirstChild("IsPlaying") then
+						v.PlayerGui.Main.LightColor.Text = "Green Light"
+						game.ReplicatedStorage:FindFirstChild("RedLight").Value = false
+						v.PlayerGui.Main.LightColor.TextColor3 = v.PlayerGui.Main.LightColor.GreenLightColor.Value
+					end
+				end
+				wait (math.random (2,4))
+			
+				for i, v in pairs (game.Players:GetPlayers()) do
+					if v.Info:FindFirstChild("IsPlaying") then
+						v.PlayerGui.Main.LightColor.Text = "Red Light"
+						v.PlayerGui.Main.LightColor.TextColor3 = v.PlayerGui.Main.LightColor.RedLightColor.Value
+						wait(.8)
+						game.ReplicatedStorage:FindFirstChild("RedLight").Value = true
+					end
+				end
+				wait (math.random (2,4))
+			end
+			wait(.1)
+		end
+	end)
+	
+	for i= gameDuration,0,-1 do
+		if #IngamePlayers == 0 then
+			gameEnded = true
+			break
+		end
+		status.Value = i.." Seconds remaining"
+		wait (1)
+	end
+	gameEnded = true
+	
+	for _, player in pairs(game.Players:GetPlayers()) do
+		player.PlayerGui.Main.LightColor.Visible = false
+		
+		if player.Info:FindFirstChild("IsPlaying") then
+			if (player.Character) then
+				player.Character.Humanoid.Health = 0
+			end
+			if player.Info:FindFirstChild("Winner") then
+				player.Info:FindFirstChild("Winner"):Destroy()
+			end
+			player.Info:FindFirstChild("IsPlaying"):Destroy()
+		end
+	end
+	
+	for i in pairs(IngamePlayers) do
+		IngamePlayers[i] = nil
+	end
+	
+	game.ReplicatedStorage:FindFirstChild("RedLight").Value = false
+	
+	print(#IngamePlayers)
+	
+	finishedConnection:Disconnect()
+	
+	redLightGreenLight:Destroy()
+end
