@@ -1,0 +1,9 @@
+local rep = game:GetService("ReplicatedStorage")
+
+local status = rep:WaitForChild("Status")
+
+script.Parent.Status.Text = status.Value
+
+status.Changed:Connect(function()
+	script.Parent.Status.Text = status.Value
+end)
