@@ -1,0 +1,23 @@
+
+players.PlayerAdded:Connect(function(player)
+	for _, v in pairs(game.ServerStorage.PlrData:GetChildren()) do
+		v:Clone().Parent = player
+	end
+	local data
+	pcall(function ()
+		data = ds:GetAsync(player.UserId.."Wins")
+	end)
+	if data ~= nil then
+		player.leaderstats.Wins.Value = data
+	end
+end)
+
+players.PlayerRemoving:Connect(function(player)
+	pcall(function()
+		ds:SetAsync(player.UserId.."Wins",player.leaderstats.Wins.Value)
+	end)
+end)
+
+game:BindToClose(function()
+	wait(2)
+end)
